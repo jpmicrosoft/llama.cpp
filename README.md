@@ -1,3 +1,7 @@
+> **Fork notice (jpmicrosoft/llama.cpp):** this repository is a downstream fork carrying **one** local patch to `src/llama-model-loader.cpp` to support `gpt-oss-120b` MXFP4 GGUFs whose metadata arrays are shorter than expected by upstream. See [AGENTS.md](AGENTS.md) for details, branch layout, and build configuration. All other content is unchanged from upstream `ggml-org/llama.cpp`.
+
+---
+
 # llama.cpp
 
 ![llama](https://user-images.githubusercontent.com/1991296/230134379-7181e485-c521-4d23-a0d6-f7b3b61ba524.png)
