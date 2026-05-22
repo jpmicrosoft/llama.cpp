@@ -1,3 +1,59 @@
+<!-- BEGIN jpmicrosoft fork notice -->
+# Fork notice — jpmicrosoft/llama.cpp
+
+This is **jpmicrosoft/llama.cpp**, a fork of [`ggml-org/llama.cpp`](https://github.com/ggml-org/llama.cpp) maintained for the **caborojo** local-AI rig (3× Intel Arc Pro B60, 128 GB DDR4, oneAPI 2025.3).
+
+## Branches
+
+- `master` — tracks upstream `master`. **Do not commit local changes here.**
+- `getbookn-gptoss-arrlen` — current local patch branch.
+
+## Local divergence from upstream
+
+Exactly **one source file** is modified from upstream:
+
+### `src/llama-model-loader.cpp`
+
+```diff
+-            if (n != arr_info.length) {
++            if (arr_info.length > n) {
+                 throw std::runtime_error(format("key %s has wrong array length; expected %u, got %u", ...));
+             }
+```
+
+**Why:** `gpt-oss-120b` MXFP4 GGUFs from openai-community ship metadata arrays whose declared length is *shorter* than expected by current llama.cpp tokenizer code. Without this relaxation the loader aborts and the model will not start. The check now only rejects arrays that are *longer* than expected (still safe), allowing shorter arrays to load. Workaround, not a permanent fix.
+
+## Build configuration (caborojo)
+
+```bash
+source /opt/intel/oneapi/setvars.sh
+export PATH=/opt/intel/oneapi/compiler/2025.3/bin/compiler:$PATH
+cmake -B build-sycl \
+  -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx \
+  -DGGML_SYCL=ON -DGGML_SYCL_TARGET=INTEL \
+  -DGGML_SYCL_DEVICE_ARCH=bmg-g21 \
+  -DGGML_NATIVE=ON -DCMAKE_BUILD_TYPE=Release \
+  -DLLAMA_CURL=OFF
+cmake --build build-sycl -j 16 --target llama-server
+```
+
+`-DGGML_SYCL_DEVICE_ARCH=bmg-g21` requires `apt install intel-ocloc` for Battlemage AOT compilation (≈+48% prefill perf vs JIT).
+
+## Known upstream issues affecting this rig
+
+- **[ggml-org/llama.cpp#23301](https://github.com/ggml-org/llama.cpp/issues/23301)** — SYCL `-sm row` (tensor-parallel) segfaults in `ggml_backend_sycl_split_buffer_type` on multi Arc Pro B60. Filed from this hardware. Use `-sm layer` (pipeline-parallel) until fixed.
+
+## Workflow for AI agents
+
+1. Stay on `getbookn-gptoss-arrlen`. Don't commit to `master`.
+2. To incorporate upstream: `git checkout master && git pull origin master && git checkout getbookn-gptoss-arrlen && git rebase master`.
+3. If the `arr_info.length > n` change conflicts (upstream changed that block), inspect — upstream may have fixed it properly; if so, drop our patch.
+4. Run a SYCL build before pushing any commit that touches `ggml/src/ggml-sycl/` or `src/llama-model-loader.cpp`.
+
+<!-- END jpmicrosoft fork notice -->
+
+---
+
 # Instructions for llama.cpp
 
 > [!IMPORTANT]
